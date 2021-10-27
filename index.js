@@ -120,12 +120,16 @@ function init() {
     enemies = [];
     particles = [];
     score = 0;
+    interval = 1000;
     scoreEl.innerHTML = score;
     bigScoreEl.innerHTML = score;
 }
 
-function spawnEnemies() {
-    setInterval(() => {
+let spawnEnemiesInterval;
+let interval = 1000;
+
+function spawnEnemies(interval) {
+    spawnEnemiesInterval = setInterval(() => {
         const radius = Math.random() * (40 - 10) + 10;
         let x;
         let y;
@@ -142,7 +146,7 @@ function spawnEnemies() {
         const velocity = { x: Math.cos(angle), y: Math.sin(angle) };
 
         enemies.push(new Enemy(x, y, radius, color, velocity));
-    }, 1000);
+    }, interval);
 }
 
 let animationId;
@@ -150,9 +154,11 @@ let score = 0;
 
 function animate() {
     animationId = requestAnimationFrame(animate);
-    c.fillStyle = 'rgba(0, 0, 0, 0.08)';
+    c.fillStyle = 'rgba(0, 0, 0, 0.18)';
     c.fillRect(0, 0, canvas.width, canvas.height);
     player.draw();
+
+    // Draw particles and remove those that are faded away
     particles.forEach((particle, index) => {
         if (particle.alpha < 0) {
             particles.splice(index, 1);
@@ -161,6 +167,7 @@ function animate() {
         }
     });
 
+    // Remove projectiles that are outside or move out of the screen
     projectiles.forEach((projectile, index) => {
         projectile.update();
         // Remove from edges of the screen
@@ -179,10 +186,13 @@ function animate() {
         const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
         if (dist - enemy.radius - player.radius < 1) {
             cancelAnimationFrame(animationId);
+            clearInterval(spawnEnemiesInterval);
+            clearInterval(levelUpCheck);
             modalEl.style.display = 'flex';
             bigScoreEl.innerHTML = score;
         }
 
+        // Check each projectile whether it hits the enemy
         projectiles.forEach((projectile, projectileIndex) => {
             const dist = Math.hypot(projectile.x - enemy.x, projectile.y - enemy.y);
 
@@ -236,11 +246,18 @@ canvasEl.addEventListener('click', (event) => {
     projectiles.push(new Projectile(centerX, centerY, 5, 'white', velocity))
 });
 
+let levelUpCheck;
 startGameBtn.addEventListener('click', () => {
     init();
     animate();
-    spawnEnemies();
+    spawnEnemies(interval);
     modalEl.style.display = 'none';
+
+    levelUpCheck = setInterval(()=>{
+            interval -= 50;
+            clearInterval(spawnEnemiesInterval);
+            spawnEnemies(interval);
+    }, 5000);
 });
 
 
